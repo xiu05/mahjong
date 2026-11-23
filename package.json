@@ -1,0 +1,14 @@
+{
+  "name": "online-mahjong",
+  "version": "1.0.0",
+  "description": "4-player online Mahjong with rooms, bots and reconnect",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": { "node": ">=18" }
+}
