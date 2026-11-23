@@ -1,4 +1,4 @@
-# Mahjong Kopitiam
+# Nyonya's Table
 
 Four-player online Mahjong with a hand-drawn, Peranakan-inspired look.
 
