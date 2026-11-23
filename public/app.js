@@ -210,8 +210,8 @@
 
     // hint
     let hint = '';
-    if (v.phase === 'turn') hint = myTurn ? 'Your turn — tap a tile, tap again to discard' : `Waiting for ${v.names[v.turn]}…`;
-    else if (v.phase === 'claim') hint = v.options && v.options.claim ? 'Claim this discard?' : 'Others are deciding…';
+    if (v.phase === 'turn') hint = myTurn ? 'Your turn! Tap a tile to pick it, tap it again to throw it away' : `Waiting for ${v.names[v.turn]}…`;
+    else if (v.phase === 'claim') hint = v.options && v.options.claim ? 'A tile was thrown. Want it? Choose a button above, or Pass' : 'Others are deciding…';
     $('hint').textContent = hint;
 
     renderActions(v);
@@ -345,6 +345,33 @@
     if (e.target.id === 'btnReady') { send({ t: 'act', action: 'ready' }); e.target.disabled = true; }
     if (e.target.id === 'btnAgain') send({ t: 'again' });
   };
+
+  /* ---------- plain-language help ---------- */
+  const T = (...ts) => `<span class="mini" style="display:inline-flex;gap:2px;vertical-align:middle;margin:0 4px">${ts.map(t => tileHTML(t, 'xs')).join('')}</span>`;
+  function openHelp() {
+    $('helpBody').innerHTML = `<h2>How to play</h2>
+      <div class="helpstep"><b>1. The goal</b><p>Be the first to arrange your tiles into <b>4 groups of 3</b> and <b>1 pair</b>. That's a win.</p></div>
+      <div class="helpstep"><b>2. What is a group?</b>
+        <p><u>Run</u> — 3 numbers in a row, same suit: ${T(0, 1, 2)}</p>
+        <p><u>Triplet</u> — 3 identical tiles: ${T(31, 31, 31)}</p>
+        <p><u>Pair</u> — 2 identical tiles: ${T(27, 27)}</p></div>
+      <div class="helpstep"><b>3. Your turn</b>
+        <p>You get one new tile (it sits a little apart on the right). Then you must <b>throw one tile away</b>: tap a tile to lift it, tap again to throw it.</p></div>
+      <div class="helpstep"><b>4. When someone else throws a tile</b>
+        <p>Buttons pop up only if the tile helps you. You can ignore them (<b>Pass</b>).</p>
+        <p><span style="color:${RED}"><b>PONG</b></span> — you have 2 of it, take it to make a triplet.<br>
+        <span style="color:${BLUE}"><b>CHOW</b></span> — it completes a run with your tiles. Only from the player just before you.<br>
+        <span style="color:${GREEN}"><b>KONG</b></span> — you have 3 of it, take it to make a group of 4 (you then draw a bonus tile).<br>
+        <span style="color:#c2185b"><b>WIN!</b></span> — it completes your whole hand.</p></div>
+      <div class="helpstep"><b>5. Tile types</b>
+        <p>${T(0, 1, 2)} 萬 numbers &nbsp; ${T(9, 10, 11)} circles &nbsp; ${T(18, 19, 20)} sticks<br>
+        ${T(27, 28, 29, 30)} winds &nbsp; ${T(31, 32, 33)} dragons (can only make triplets and pairs)</p></div>
+      <div class="helpstep"><b>6. Tips</b><p>Throw away tiles that are alone and have no friends nearby. Pairs of dragons or winds are worth keeping. If the clock runs out, a bot plays for you.</p></div>
+      <div class="row"><button class="btn jade" id="btnHelpClose">Got it</button></div>`;
+    $('help').hidden = false;
+  }
+  $('btnHelp').onclick = $('btnHelp2').onclick = openHelp;
+  $('help').onclick = (e) => { if (e.target.id === 'help' || e.target.id === 'btnHelpClose') $('help').hidden = true; };
 
   try { $('name').value = localStorage.getItem('mj_name') || ''; } catch (e) { /* ignore */ }
   const q = new URLSearchParams(location.search).get('room');

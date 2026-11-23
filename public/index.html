@@ -30,6 +30,7 @@
       <label>Your name<input id="name" maxlength="14" placeholder="e.g. Ah Lian" autocomplete="off"></label>
       <div class="row">
         <button class="btn jade" id="btnCreate">Open a table</button>
+        <button class="btn ghost" id="btnHelp">How to play</button>
       </div>
       <div class="or">— or join one —</div>
       <div class="row">
@@ -60,6 +61,7 @@
     <header class="status paper">
       <div><b id="stHand"></b> <span id="stWall"></span></div>
       <div class="timer"><i id="timerBar"></i></div>
+      <button class="btn tiny" id="btnHelp2">? Help</button>
       <button class="btn tiny ghost" id="btnLeave2">Leave</button>
     </header>
     <div class="table">
@@ -80,6 +82,7 @@
   </section>
 
   <div id="modal" class="modal" hidden><div class="card paper modalcard" id="modalBody"></div></div>
+  <div id="help" class="modal" hidden><div class="card paper modalcard" id="helpBody"></div></div>
   <div id="toast" class="toast" hidden></div>
 </main>
 <script src="app.js"></script>
