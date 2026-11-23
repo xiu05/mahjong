@@ -1,4 +1,5 @@
 'use strict';
+const Bot = require('./bot');
 // Authoritative Mahjong game engine (simplified Chinese-style rules).
 // Tiles: 0-8 characters(man), 9-17 circles(pin), 18-26 bamboo(sou),
 // 27-30 winds E S W N, 31-33 dragons (red, green, white). 4 copies each = 136.
@@ -124,6 +125,7 @@ class Game {
     this.eventN = 0;
     this.event = null;
     this.stopped = false;
+    this.persona = [0, 1, 2, 3].map(() => Bot.makePersona());
   }
 
   start() { this.startHand(); return this; }
@@ -407,43 +409,19 @@ class Game {
   }
 
   // ---- bots ----
-  botDiscard(seat) {
-    const hand = this.hands[seat], c = toCounts(hand);
-    let best = null, bestV = Infinity;
-    for (const t of new Set(hand)) {
-      let v = c[t] * 10;
-      if (t < 27) {
-        const p = t % 9;
-        if (p >= 1) v += c[t - 1] * 4;
-        if (p <= 7) v += c[t + 1] * 4;
-        if (p >= 2) v += c[t - 2] * 2;
-        if (p <= 6) v += c[t + 2] * 2;
-        if (p === 0 || p === 8) v -= 1;
-      } else {
-        v -= 1;
-        if (t >= 31 || t === 27 + this.seatWind(seat)) v += 2;
-      }
-      if (t === this.drawn) v -= 0.1;
-      if (v < bestV) { bestV = v; best = t; }
-    }
-    return best;
-  }
-
   botTurn(seat) {
     if (this.phase !== 'turn' || this.turn !== seat) return;
     const o = this.turnOptions(seat);
     if (o.tsumo) { this.act(seat, { action: 'tsumo' }); return; }
-    this.act(seat, { action: 'discard', tile: this.botDiscard(seat) });
+    const k = Bot.chooseKongOnTurn(this, seat, o);
+    if (k && !this.act(seat, k)) return;
+    this.act(seat, { action: 'discard', tile: Bot.chooseDiscard(this, seat) });
   }
 
   botClaim(seat) {
     if (this.phase !== 'claim' || !this.claims[seat] || this.responses[seat]) return;
-    const o = this.claims[seat];
-    const t = this.last.tile;
-    let a = { action: 'pass' };
-    if (o.win) a = { action: 'ron' };
-    else if (o.pong && (t >= 31 || t === 27 + this.seatWind(seat))) a = { action: 'pong' };
-    this.act(seat, a);
+    const a = Bot.chooseClaim(this, seat);
+    if (this.act(seat, a)) this.act(seat, { action: 'pass' });
   }
 
   // ---- timers / notification ----
@@ -458,15 +436,14 @@ class Game {
     this.clearTimers();
     if (this.stopped || !this.anyHuman()) return;
     const remaining = Math.max(0, this.deadline - Date.now());
-    const jitter = () => this.ms(700 + Math.random() * 700);
-    if (this.phase === 'turn') {
+        if (this.phase === 'turn') {
       const s = this.turn;
-      if (this.isAuto(s)) this.later(jitter(), () => this.botTurn(s));
+      if (this.isAuto(s)) this.later(this.ms(Bot.delay(this, s, 'discard')), () => this.botTurn(s));
       else this.later(remaining * this.speed, () => this.botTurn(s));
     } else if (this.phase === 'claim') {
       for (const s of Object.keys(this.claims).map(Number)) {
         if (this.responses[s]) continue;
-        if (this.isAuto(s)) this.later(jitter(), () => this.botClaim(s));
+        if (this.isAuto(s)) this.later(this.ms(Bot.delay(this, s, 'claim')), () => this.botClaim(s));
       }
       this.later(remaining * this.speed, () => {
         if (this.phase !== 'claim') return;

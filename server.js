@@ -23,6 +23,13 @@ const server = http.createServer((req, res) => {
 });
 
 const rooms = new Map();
+const BOT_NAMES = ['Ah Meng', 'Siti', 'Wei Ling', 'Raj', 'Mei Mei', 'Uncle Tan', 'Aisyah', 'Kumar'];
+const botName = (room) => {
+  const used = new Set(room.seats.map(x => x.name));
+  const free = BOT_NAMES.filter(n => !used.has(n));
+  const pool = free.length ? free : BOT_NAMES;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
 const emptySeat = () => ({ empty: true, name: '', token: null, bot: false, connected: false, ws: null });
 const clean = (s, n) => String(s || '').replace(/[<>]/g, '').trim().slice(0, n);
 
@@ -130,7 +137,7 @@ function handle(ws, m) {
       if (room.game || i !== room.host) return;
       const k = room.freeSeat();
       if (k < 0) return;
-      room.seats[k] = { empty: false, name: 'Bot ' + (k + 1), token: null, bot: true, connected: true, ws: null };
+      room.seats[k] = { empty: false, name: botName(room), token: null, bot: true, connected: true, ws: null };
       room.broadcast();
       return;
     }
@@ -146,7 +153,7 @@ function handle(ws, m) {
     case 'start': {
       if (room.game || i !== room.host) return;
       for (let k = 0; k < 4; k++) {
-        if (room.seats[k].empty) room.seats[k] = { empty: false, name: 'Bot ' + (k + 1), token: null, bot: true, connected: true, ws: null };
+        if (room.seats[k].empty) room.seats[k] = { empty: false, name: botName(room), token: null, bot: true, connected: true, ws: null };
       }
       room.game = new Game(room.seats, () => room.broadcast());
       room.game.start();

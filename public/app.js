@@ -129,6 +129,86 @@
     } else if (m.t === 'kicked') { store.clear(); lobby = view = null; show('home'); toast('You were removed from the table'); }
   }
 
+
+  /* ---------- sound effects (synthesised, no audio files) ---------- */
+  const Sfx = (() => {
+    let ctx = null, master = null, on = true;
+    try { on = localStorage.getItem('mj_sound') !== 'off'; } catch (e) { /* ignore */ }
+    function init() {
+      if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return ctx; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC(); master = ctx.createGain(); master.gain.value = 0.55; master.connect(ctx.destination);
+      return ctx;
+    }
+    const out = (pan) => {
+      if (!pan || !ctx.createStereoPanner) return master;
+      const p = ctx.createStereoPanner(); p.pan.value = pan; p.connect(master); return p;
+    };
+    function tone(freq, dur, { type = 'sine', vol = 0.3, at = 0, pan = 0, slide = 0, attack = 0.005 } = {}) {
+      const t0 = ctx.currentTime + at, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t0);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(out(pan)); o.start(t0); o.stop(t0 + dur + 0.05);
+    }
+    function noise(dur, { vol = 0.3, at = 0, pan = 0, freq = 2500, q = 1 } = {}) {
+      const t0 = ctx.currentTime + at, len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol;
+      src.connect(f); f.connect(g); g.connect(out(pan)); src.start(t0);
+    }
+    const bell = (f, at, vol = 0.22, pan = 0) => { tone(f, 0.9, { type: 'triangle', vol, at, pan }); tone(f * 2.01, 0.5, { type: 'sine', vol: vol * 0.4, at, pan }); };
+    const sounds = {
+      // tile slapped on the table
+      discard(pan) { noise(0.07, { vol: 0.55, pan, freq: 1800, q: 0.8 }); tone(170, 0.09, { vol: 0.5, pan, slide: -70 }); },
+      draw(pan) { noise(0.04, { vol: 0.18, pan, freq: 3500, q: 2 }); },
+      select() { tone(900, 0.04, { type: 'square', vol: 0.05 }); },
+      turn() { bell(784, 0, 0.18); bell(1175, 0.12, 0.16); },
+      alert() { tone(660, 0.1, { type: 'triangle', vol: 0.18 }); tone(880, 0.12, { type: 'triangle', vol: 0.18, at: 0.09 }); },
+      shuffle() { for (let i = 0; i < 9; i++) noise(0.05, { vol: 0.22, at: i * 0.06, freq: 1200 + Math.random() * 2500, q: 0.7, pan: (Math.random() - 0.5) * 0.8 }); },
+      pong(pan) { sounds.discard(pan); setTimeout(() => sounds.discard(pan), 110); tone(330, 0.25, { type: 'sawtooth', vol: 0.12, at: 0.05, pan }); },
+      chow(pan) { tone(520, 0.14, { type: 'triangle', vol: 0.25, pan }); tone(780, 0.22, { type: 'triangle', vol: 0.25, at: 0.11, pan }); noise(0.05, { vol: 0.3, pan, freq: 2200 }); },
+      kong(pan) { [0, 0.11, 0.22].forEach((a, i) => { noise(0.07, { vol: 0.5, at: a, pan, freq: 1400 }); tone(140 - i * 15, 0.16, { vol: 0.55, at: a, pan }); }); tone(220, 0.5, { type: 'sawtooth', vol: 0.1, at: 0.3, pan }); },
+      win() { [523, 659, 784, 1047, 1319].forEach((f, i) => bell(f, i * 0.11, 0.24)); noise(0.6, { vol: 0.12, at: 0.45, freq: 6000, q: 0.5 }); },
+      lose() { [440, 392, 330].forEach((f, i) => tone(f, 0.35, { type: 'triangle', vol: 0.2, at: i * 0.2 })); },
+      draw_game() { [392, 392, 330].forEach((f, i) => tone(f, 0.3, { type: 'sine', vol: 0.2, at: i * 0.22 })); },
+      tick() { tone(1400, 0.03, { type: 'square', vol: 0.05 }); },
+    };
+    return {
+      get on() { return on; },
+      toggle() { on = !on; try { localStorage.setItem('mj_sound', on ? 'on' : 'off'); } catch (e) { /* ignore */ } if (on) { init(); sounds.select(); } return on; },
+      unlock: init,
+      play(name, pan) { if (!on || !init()) return; try { sounds[name](pan); } catch (e) { /* ignore */ } },
+    };
+  })();
+  ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, () => Sfx.unlock(), { once: true }));
+  const panFor = (v, seat) => [0, 0.55, 0, -0.55][(seat - v.you + 4) % 4];
+
+  let prev = null;
+  function soundDiff(p, v) {
+    if (!p || p.handNo !== v.handNo) { if (!p || v.handNo !== (p && p.handNo)) Sfx.play('shuffle'); }
+    else {
+      const total = (x) => x.discards.reduce((a, d) => a + d.length, 0);
+      if (v.last && total(v) > total(p) && v.last.from !== undefined) Sfx.play('discard', panFor(v, v.last.from));
+      if (v.event && (!p.event || v.event.n !== p.event.n)) {
+        const k = { Pong: 'pong', Chi: 'chow', Kong: 'kong', 'Win!': null }[v.event.text];
+        if (k) Sfx.play(k, panFor(v, v.event.seat));
+      }
+      const myTurn = (x) => x.phase === 'turn' && x.turn === x.you && x.drawn !== null;
+      if (myTurn(v) && !myTurn(p)) Sfx.play('turn');
+      else if (!myTurn(v) && v.hand.length + v.melds[v.you].length * 3 > p.hand.length + p.melds[v.you].length * 3 && v.phase === 'turn') Sfx.play('draw');
+      if (v.options && v.options.claim && !(p.options && p.options.claim)) Sfx.play('alert');
+    }
+    if (v.phase === 'result' && (!p || p.phase !== 'result')) {
+      const r = v.result;
+      if (r.type === 'win') Sfx.play(r.winner === v.you ? 'win' : 'lose'); else Sfx.play('draw_game');
+    }
+  }
+
   /* ---------- screens ---------- */
   function show(name) {
     for (const id of ['home', 'lobby', 'game']) $(id).hidden = id !== name;
@@ -174,12 +254,14 @@
     return `<div class="zhead">
         <span class="badge ${s === v.dealer ? 'dealer' : ''}" title="${s === v.dealer ? 'Dealer' : ''}">${WINDS[wind]}</span>
         <span class="nm">${esc(v.names[s])}${tag}</span>${v.away[s] ? '<span class="away">away</span>' : ''}
-        <span class="sc">${v.scores[s]}</span></div>
+        <span class="cnt">${v.counts[s]} tiles</span><span class="sc">${v.scores[s]}</span></div>
       ${backs}${melds ? `<div class="melds">${melds}</div>` : ''}<div class="pool">${pool}</div>`;
   }
 
   function renderGame() {
     const v = view;
+    try { soundDiff(prev, v); } catch (e) { /* ignore */ }
+    prev = v;
     $('stHand').textContent = `Hand ${v.handNo} · Round ${Math.min(v.rotations + 1, v.totalHands)}/${v.totalHands}`;
     $('stWall').textContent = `· ${v.wall} tiles left`;
     for (let rel = 0; rel < 4; rel++) {
@@ -319,9 +401,18 @@
     $('homeErr').textContent = '';
     send({ t: 'join', room: code, name: startName() });
   };
-  const leave = () => { send({ t: 'leave' }); store.clear(); lobby = view = null; lastEvent = -1; history.replaceState(null, '', location.pathname); show('home'); $('modal').hidden = true; };
+  const leave = () => { send({ t: 'leave' }); store.clear(); lobby = view = prev = null; lastEvent = -1; history.replaceState(null, '', location.pathname); show('home'); $('modal').hidden = true; };
   $('btnLeave').onclick = leave;
   $('btnLeave2').onclick = () => { if (confirm('Leave the game? A bot will take your seat.')) leave(); };
+  const syncSound = () => { $('btnSound').textContent = 'Sound: ' + (Sfx.on ? 'on' : 'off'); };
+  syncSound();
+  $('btnSound').onclick = () => { Sfx.toggle(); syncSound(); };
+  $('btnFull').onclick = () => {
+    const el = document.documentElement;
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
+    (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).then(() => { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); }, () => toast('Full screen is not available here. Try “Add to Home Screen”.'));
+  };
+  $('rotateX').onclick = () => { $('rotate').style.display = 'none'; };
   $('btnBot').onclick = () => send({ t: 'addbot' });
   $('btnStart').onclick = () => send({ t: 'start' });
   $('btnCopy').onclick = () => {
@@ -335,7 +426,7 @@
     const t = +el.dataset.t;
     const myTurn = view.phase === 'turn' && view.turn === view.you;
     if (myTurn && sel === t) { sel = null; send({ t: 'act', action: 'discard', tile: t }); }
-    else { sel = t; renderGame(); }
+    else { sel = t; Sfx.play('select'); renderGame(); }
   };
   $('actions').onclick = (e) => {
     const b = e.target.closest('.burst');

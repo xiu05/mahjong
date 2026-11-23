@@ -219,3 +219,85 @@ input:focus { box-shadow: 0 0 0 3px var(--pink); }
 .helpstep { margin: 10px 0; padding: 8px 12px; border: 2px dashed var(--ink); border-radius: 10px; background: var(--cream); }
 .helpstep p { margin: 4px 0; line-height: 1.5; }
 #help { z-index: 25; }
+
+.cnt { display: none; font-size: 13px; opacity: .8; }
+.rotate { display: none; text-align: center; margin: 0 4px 8px; padding: 4px 10px; background: var(--pink); border: 2px solid var(--ink); border-radius: 10px; font-size: 15px; }
+.rotate button { font: inherit; border: 0; background: none; cursor: pointer; font-size: 20px; margin-left: 8px; }
+.btn.full { display: none; }
+@media (orientation: portrait) and (max-width: 700px) { .rotate { display: block; } }
+@media (pointer: coarse) { .btn.full { display: inline-block; } }
+
+/* ===== big screens: seats around a real table ===== */
+@media (min-width: 900px) and (min-height: 560px) {
+  :root { --tw: min(78px, calc((100vw - 140px) / 15), 7.8vh); --dw: min(44px, 4.8vh, calc((100vw - 700px) / 14)); }
+  body { font-size: 20px; }
+  #app { max-width: 1800px; padding: 14px 28px 26px; }
+  .status { padding: 8px 18px; font-size: 21px; }
+  .btn.tiny { font-size: 19px; padding: 3px 14px; }
+  .table { display: grid; gap: 14px; padding: 18px; grid-template-columns: minmax(240px, 1fr) minmax(0, 2.2fr) minmax(240px, 1fr);
+    grid-template-areas: "left top right" "left cmp right" "left me right"; grid-template-rows: auto auto auto; }
+  .mid { display: contents; }
+  #z2 { grid-area: top; } #z3 { grid-area: left; } #z1 { grid-area: right; } #z0 { grid-area: me; }
+  .compass { grid-area: cmp; width: 120px; height: 120px; font-size: 18px; }
+  .compass b { font-size: 38px; }
+  .compass .w { font-size: 22px; } .compass .w.on { font-size: 28px; }
+  .zone { padding: 12px 16px 14px; min-height: 90px; }
+  .zhead { font-size: 21px; gap: 10px; }
+  .zhead .nm { font-size: 30px; max-width: 12em; }
+  .badge { width: 36px; height: 36px; font-size: 23px; }
+  .tile.xs { --tw: 30px; }
+  .tile.back.xs { --tw: 22px; }
+  .pool { gap: 3px; margin-top: 8px; }
+  .mine { margin: 16px 4px 0; padding: 8px 12px 12px; }
+  .hand { gap: 6px; padding: 20px 0 8px; min-height: calc(var(--tw) * 1.36 + 56px); }
+  .hand .tile.drawn { margin-left: 22px; }
+  .hint { font-size: 22px; }
+  .burst { width: 170px; height: 112px; font-size: 34px; }
+  .burst.pass { width: 130px; height: 96px; font-size: 28px; }
+  .burstflash { width: 340px; height: 230px; margin: -115px 0 0 -170px; font-size: 72px; }
+  .burstflash small { font-size: 26px; }
+  .modalcard { max-width: 860px; }
+  .modal .tile.xs { --tw: 36px; }
+  .helpstep { font-size: 21px; }
+}
+
+/* ===== phones / tablets held sideways: everything on one screen ===== */
+@media (orientation: landscape) and (max-height: 559px) {
+  :root { --tw: min(44px, calc((100vw - 60px) / 15.4), 10.5vh); --dw: min(26px, 6.2vh, calc((100vw - 330px) / 22)); }
+  body { font-size: 15px; }
+  #app { max-width: none; padding: 4px 8px 4px; }
+  #game:not([hidden]) { display: flex; flex-direction: column; height: calc(100dvh - 8px); padding-top: 0; }
+  .status { margin: 0 0 6px; padding: 2px 10px; gap: 8px; }
+  .status .btn.tiny { font-size: 14px; padding: 0 8px; }
+  .btn.full { display: inline-block; }
+  .table { flex: 1; min-height: 0; overflow: auto; display: grid; gap: 6px; padding: 8px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr);
+    grid-template-areas: "left top right" "left cmp right" "left me right"; grid-template-rows: auto 1fr auto; }
+  .mid { display: contents; }
+  #z2 { grid-area: top; } #z3 { grid-area: left; } #z1 { grid-area: right; } #z0 { grid-area: me; }
+  .compass { grid-area: cmp; width: 56px; height: 56px; font-size: 10px; }
+  .compass b { font-size: 20px; } .compass i { display: none; }
+  .zone { padding: 3px 7px 5px; min-height: 0; overflow: hidden; }
+  .zhead { font-size: 14px; gap: 5px; }
+  .zhead .nm { font-size: 17px; }
+  .badge { width: 22px; height: 22px; font-size: 14px; }
+  .backs { display: none; }
+  .cnt { display: inline; }
+  .pool { gap: 1px; margin-top: 3px; }
+  .tile.xs { --tw: 16px; }
+  .rotate { display: none !important; }
+  .mine { margin: 6px 0 0; padding: 2px 8px 4px; }
+  .hint { display: none; }
+  .hand { gap: 2px; padding: 12px 0 2px; min-height: 0; }
+  .hand .tile.drawn { margin-left: 10px; }
+  .hand .tile.sel { transform: translateY(-9px); }
+  .actions { position: fixed; right: 14px; bottom: calc(var(--tw) * 1.36 + 40px); z-index: 12; margin: 0; flex-wrap: nowrap; }
+  .burst { width: 100px; height: 66px; font-size: 20px; }
+  .burst .mini { display: none; }
+  .burst.pass { width: 76px; height: 56px; font-size: 17px; }
+  .burstflash { width: 200px; height: 130px; margin: -65px 0 0 -100px; font-size: 38px; }
+  .modalcard { margin: 6px auto; padding: 12px 14px; }
+  .modalcard h2 { font-size: 28px; }
+  .deltas { grid-template-columns: repeat(4, 1fr); }
+  .modal .tile.xs { --tw: 20px; }
+}

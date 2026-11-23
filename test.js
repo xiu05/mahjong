@@ -10,6 +10,11 @@ assert(isWin(c([0,0,2,2,4,4,9,9,18,18,27,27,33,33]), 0), 'seven pairs');
 assert(isWin(c([0,8,9,17,18,26,27,28,29,30,31,32,33,33]), 0), 'orphans');
 assert(isWin(c([0,1,2,5,5]), 3), 'with 3 melds');
 assert.strictEqual(scoreHand([0,0,0,1,1,1,2,2,2,3,3,3,4,4],[],false,0).fans.some(f=>f.name==='Full Flush'), true);
+const { shanten } = require('./bot');
+assert.strictEqual(shanten(c([0,1,2,3,4,5,9,10,11,18,19,20,27,27]), 0), -1, 'win = -1');
+assert.strictEqual(shanten(c([0,1,2,3,4,5,9,10,11,18,19,20,27]), 0), 0, 'tenpai');
+assert.strictEqual(shanten(c([0,0,2,2,4,4,9,9,18,18,27,27,33]), 0), 0, 'chiitoi tenpai');
+assert(shanten(c([0,3,6,9,12,15,18,21,24,27,28,29,30]), 0) >= 4, 'junk hand');
 console.log('unit tests ok');
 
 // --- full simulated games: 1 absent "human" (auto after timeout) + 3 bots
